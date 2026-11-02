@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 import httpx
+import lxml.html
 
 API = "https://api.holdsport.dk/v1"
 WEB = "https://www.holdsport.dk"
@@ -131,6 +132,44 @@ class Holdsport:
                 return None
         raise HoldsportError(f"activity {activity_id} not found in team {team_id}")
 
+    # ---- messages (website only: the API has none) ----
+
+    def messages(self) -> list[dict]:
+        """The message center: id, sender, when (as shown, e.g. "3. nov"), subject, text.
+        Reading the page does not mark anything read."""
+        doc = lxml.html.fromstring(self._login().get("/message_center").text)
+        out = []
+        for row in doc.find_class("message_row"):
+            out.append(
+                {
+                    "id": row.get("phx-value-id") or "",
+                    "sender": _text(row, "sender"),
+                    "when": _text(row, "timestamp"),
+                    "subject": _text(row, "subject"),
+                    "text": _text(row, "message"),
+                    "unread": "unread" in (row.get("class") or "").split(),
+                }
+            )
+        return out
+
+    def chat_rooms(self) -> list[dict]:
+        """Every chat room with its latest message: id, name, when (as shown), last ("Author: text"),
+        unread. The full history of a room is only on the page's live socket, not here."""
+        doc = lxml.html.fromstring(self._login().get("/chat").text)
+        out = []
+        for row in doc.find_class("chat_room_row"):
+            last = [m.text_content().strip() for m in row.find_class("chat_room_message")]
+            out.append(
+                {
+                    "id": row.get("phx-value-id") or "",
+                    "name": _text(row, "chat_room_name"),
+                    "when": _text(row, "timestamp"),
+                    "last": next((m for m in last if m), ""),
+                    "unread": "unread" in (row.get("class") or "").split() or bool(row.find_class("unread")),
+                }
+            )
+        return out
+
     # ---- website session ----
 
     def _login(self) -> httpx.Client:
@@ -156,6 +195,11 @@ class Holdsport:
             raise HoldsportError("login: website did not accept the username and password")
         self._web = web
         return web
+
+
+def _text(el: Any, cls: str) -> str:
+    found = el.find_class(cls)
+    return " ".join(found[0].text_content().split()) if found else ""
 
 
 def _token(html: str, name: str) -> str | None:
