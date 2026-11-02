@@ -15,6 +15,8 @@ Holdsport has no public, documented API. This client uses what an ordinary user 
 | Sign up ("Tilmeld") | `join(activity_id, user_id)` | API, or the website if you already answered |
 | Decline ("Afmeld") with a reason | `decline(activity_id, reason)` | website |
 | Read your current answer | `status(team_id, activity_id, user_id)` | API |
+| Read the message center (sender, date, subject, text) | `messages()` | website |
+| Read every chat room with its latest message | `chat_rooms()` | website |
 
 ## Install
 
@@ -85,3 +87,5 @@ Made by [Skarnlabs](https://skarnlabs.dk) in Denmark, shared for the Danish comm
 ## License
 
 MIT
+
+Messages are web-only: the API has no messages or chat endpoint (checked 2 Nov 2026). The message center and the chat room list are server-rendered, and reading them marks nothing read. A room's full history arrives over the page's Phoenix LiveView socket, so `chat_rooms()` gives each room's latest message only. Dates are given as the site shows them ("3. nov").
