@@ -78,6 +78,10 @@ Tested on 2 November 2026 against a test team: listing, signing up, declining wi
 
 Not affiliated with Holdsport ApS.
 
+## About
+
+Made by [Skarnlabs](https://skarnlabs.dk) in Denmark, shared for the Danish community.
+
 ## License
 
 MIT
