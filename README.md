@@ -58,7 +58,7 @@ Holdsport has two surfaces, and neither does everything.
 - An extra field in that body returns `500`.
 - There is no API route for declining with a reason, for changing an answer, or for creating activities.
 
-**The website** at `https://www.holdsport.dk` takes a session login (`POST /sessions` with the CSRF token from the front page).
+**The website** at `https://www.holdsport.dk` takes a session login (`POST /sessions` with both tokens from the front page: the form's `_csrf_token` and the page's `csrf-token` meta as `authenticity_token`; without the second the password is accepted but no session is kept).
 
 - To decline, post `unattend_reason` to `/activities/{id}/unattends`. Holdsport requires a reason. The site suggests Syg, Skadet, Ferie, Skole, Arbejde, Sport and Andet, but free text works too.
 - To change an answer back to signed up, post `activities_user[joined_status]=1` to `/activities/{id}/activities_users/{answer_id}` with `_method=put`. This can answer with HTTP `500` even though it saved the change, so the client reads the page back instead of trusting the status code.
