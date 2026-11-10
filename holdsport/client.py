@@ -179,20 +179,28 @@ class Holdsport:
             base_url=WEB, timeout=self._timeout, follow_redirects=True, headers={"Accept": "text/html,application/xhtml+xml"}
         )
         front = web.get("/")
-        token = _token(front.text, "_csrf_token") or _meta_token(front.text)
-        if not token:
+        # The login form carries a Phoenix-style _csrf_token, but the site is Rails and checks the
+        # meta csrf-token as authenticity_token. Without it (since 09/11 2026) the password is still
+        # checked and the redirect says login_suc=t, but the session is thrown away (null_session),
+        # so every page after it is the logged-out front page. Send both.
+        form_token = _token(front.text, "_csrf_token")
+        rails_token = _meta_token(front.text)
+        if not form_token and not rails_token:
             raise HoldsportError("login: no CSRF token on the front page")
-        r = web.post(
-            "/sessions",
-            data={
-                "_csrf_token": token,
-                "session[username]": self._auth[0],
-                "session[password]": self._auth[1],
-                "session[remember_me]": "0",
-            },
-        )
-        if "/sign_out" not in r.text:
+        data = {
+            "session[username]": self._auth[0],
+            "session[password]": self._auth[1],
+            "session[remember_me]": "0",
+        }
+        if rails_token:
+            data["authenticity_token"] = rails_token
+        if form_token:
+            data["_csrf_token"] = form_token
+        r = web.post("/sessions", data=data)
+        if "invalid_login" in str(r.url):
             raise HoldsportError("login: website did not accept the username and password")
+        if "/sign_out" not in r.text:
+            raise HoldsportError("login: the password was accepted but the website kept no session (login changed?)")
         self._web = web
         return web
 
